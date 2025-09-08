@@ -1,0 +1,37 @@
+// prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String?
+  role      String
+  createdAt DateTime @default(now())
+  email     String   @unique
+  password  String
+}
+
+model Genre {
+  id     String   @id @default(auto()) @map("_id") @db.ObjectId
+  name   String
+  movies Movies[]  // One-to-Many relationship with Movies
+}
+
+model Movies {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  title     String
+  desc      String
+  year      Int
+  url       String
+  bannerUrl String
+  addedAt   DateTime @default(now())
+  genreId   String   @db.ObjectId
+  genre     Genre    @relation(fields: [genreId], references: [id])
+  rating    Int
+}
