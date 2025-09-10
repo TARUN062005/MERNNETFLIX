@@ -1,21 +1,17 @@
-// server/controller/authController.js
 const { prisma } = require('../utils/dbConnector');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 
 exports.adminRegister = async (req, res) => {
-  const { name, role, email, pass } = req.body;
+  // Corrected to expect 'name', 'email', 'password'
+  const { name, email, password } = req.body;
+  console.log(name,email,password);
   try {
-    const hashPassword = await bcrypt.hash(pass, 10);
+    const hashPassword = await bcrypt.hash(password, 10);
 
-    const UserData = await prisma.user.create({
-      data: {
-        name,
-        email,
-        role,
-        password: hashPassword
-      }
+   const UserData = await prisma.user.create({
+      data: { name, email, role: 'admin', password: hashPassword }
     });
 
     res.status(201).send({ message: 'Admin created', status: true, data: UserData });
@@ -25,12 +21,13 @@ exports.adminRegister = async (req, res) => {
 };
 
 exports.adminLogin = async (req, res) => {
-  const { email, pass } = req.body;
+  // Corrected to expect 'password'
+  const { email, password } = req.body;
   try {
     const validUser = await prisma.user.findFirst({ where: { email, role: 'admin' } });
     if (!validUser) return res.status(400).send({ message: "User doesn't exist" });
 
-    const validPass = await bcrypt.compare(pass, validUser.password);
+    const validPass = await bcrypt.compare(password, validUser.password);
     if (!validPass) return res.status(400).send({ message: "Wrong Password" });
 
     const token = jwt.sign(
@@ -46,9 +43,10 @@ exports.adminLogin = async (req, res) => {
 };
 
 exports.userRegister = async (req, res) => {
-  const { name, email, pass } = req.body;
+  // Corrected to expect 'password'
+  const { name, email, password } = req.body;
   try {
-    const hashPassword = await bcrypt.hash(pass, 10);
+    const hashPassword = await bcrypt.hash(password, 10);
 
     const UserData = await prisma.user.create({
       data: { name, email, role: 'user', password: hashPassword }
@@ -61,12 +59,13 @@ exports.userRegister = async (req, res) => {
 };
 
 exports.userLogin = async (req, res) => {
-  const { email, pass } = req.body;
+  // Corrected to expect 'password'
+  const { email, password } = req.body;
   try {
     const validUser = await prisma.user.findFirst({ where: { email, role: 'user' } });
     if (!validUser) return res.status(400).send({ message: "User doesn't exist" });
 
-    const validPass = await bcrypt.compare(pass, validUser.password);
+    const validPass = await bcrypt.compare(password, validUser.password);
     if (!validPass) return res.status(400).send({ message: "Wrong Password" });
 
     const token = jwt.sign(
@@ -80,18 +79,20 @@ exports.userLogin = async (req, res) => {
     res.status(400).send({ message: err.message });
   }
 };
+
 // admin can change their own password
 exports.adminChangePass = async (req, res) => {
   const adminId = req.params.id;
-  const { oldPass, newPass } = req.body;
+  // Corrected to expect 'newPassword'
+  const { oldPassword, newPassword } = req.body;
   try {
     const admin = await prisma.user.findUnique({ where: { id: adminId } });
     if (!admin) return res.status(400).send({ message: "Admin not found" });
 
-    const validPass = await bcrypt.compare(oldPass, admin.password);
+    const validPass = await bcrypt.compare(oldPassword, admin.password);
     if (!validPass) return res.status(400).send({ message: "Old password is incorrect" });
 
-    const hashNew = await bcrypt.hash(newPass, 10);
+    const hashNew = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: adminId },
       data: { password: hashNew }
@@ -106,12 +107,13 @@ exports.adminChangePass = async (req, res) => {
 // Admin can reset any user's password
 exports.adminResetUserPassword = async (req, res) => {
   const { userId } = req.params; 
-  const { newPass } = req.body;
+  // Corrected to expect 'newPassword'
+  const { newPassword } = req.body;
 
   try {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) return res.status(404).send({ status: false, message: "User not found" });
-    const hashNew = await bcrypt.hash(newPass, 10);
+    const hashNew = await bcrypt.hash(newPassword, 10);
     await prisma.user.update({
       where: { id: userId },
       data: { password: hashNew }
