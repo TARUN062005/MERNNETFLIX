@@ -1,3 +1,4 @@
+// client/src/components/userUI/signIn.jsx
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
@@ -5,28 +6,27 @@ import { Link, useNavigate } from "react-router-dom";
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("user"); // default role
+  const [role, setRole] = useState("user");
   const [message, setMessage] = useState(null);
   const [status, setStatus] = useState(""); // success | error
-  const [loading, setLoading] = useState(false); // NEW: loading state
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  // Effect to automatically clear the message after 3 seconds
+  // Clear messages after 3s
   useEffect(() => {
     if (message) {
       const timer = setTimeout(() => {
         setMessage(null);
         setStatus("");
-      }, 3000); // auto dismiss in 3 seconds
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [message]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (loading) return; // prevent double click
-    setLoading(true); // start loading
+    if (loading) return;
+    setLoading(true);
 
     const url =
       role === "admin"
@@ -36,13 +36,20 @@ export default function SignIn() {
     try {
       const res = await axios.post(url, { email, password });
 
-      setMessage(res.data.message || "Login Successful");
-      setStatus("success");
-
-      if (res.data.token) {
+      if (res.data.token && res.data.user) {
         localStorage.setItem("token", res.data.token);
-        localStorage.setItem("role", role);
         localStorage.setItem("user", JSON.stringify(res.data.user));
+        setMessage(res.data.message || "Login Successful");
+        setStatus("success");
+        // Redirect immediately after login
+        if (res.data.user.role === "admin") {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/user-dashboard");
+        }
+      } else {
+        setMessage("Invalid response from server.");
+        setStatus("error");
       }
     } catch (err) {
       setMessage(
@@ -50,14 +57,14 @@ export default function SignIn() {
       );
       setStatus("error");
     } finally {
-      setLoading(false); // stop loading after response
+      setLoading(false);
     }
   };
 
   return (
     <div className="relative w-full h-screen font-inter">
       <img
-        src="https://xboxwire.thesourcemediaassets.com/sites/2/2023/05/Background-size1920x1080-4e1694a6-75aa-4c36-9d4d-7fb6a3102005-bc5318781aad7f5c8520.png"
+        src="src/assets/netflix-bg.png"
         alt="background"
         className="w-full h-full object-cover"
       />
@@ -66,13 +73,13 @@ export default function SignIn() {
       <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent z-20" />
 
       <div className="absolute top-0 left-0 w-full h-full flex flex-col justify-between z-30">
-        {/* Netflix Logo */}
+        {/* Logo */}
         <div className="flex justify-between items-center p-6">
           <img
             src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg"
             alt="Netflix Logo"
             className="w-58 h-auto cursor-pointer relative rigth-10 left-15"
-            onClick={() => navigate("/")} // go to home page
+            onClick={() => navigate("/")}
           />
         </div>
 
@@ -84,7 +91,6 @@ export default function SignIn() {
           >
             <h2 className="text-3xl font-bold mb-8 text-center">Sign In</h2>
 
-            {/* Email */}
             <input
               type="email"
               value={email}
@@ -94,7 +100,6 @@ export default function SignIn() {
               required
             />
 
-            {/* Password */}
             <input
               type="password"
               value={password}
@@ -104,7 +109,6 @@ export default function SignIn() {
               required
             />
 
-            {/* Role Selector */}
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
@@ -114,7 +118,6 @@ export default function SignIn() {
               <option value="admin">Admin</option>
             </select>
 
-            {/* Alert Message */}
             {message && (
               <div
                 className={`mb-6 p-3 rounded-lg text-center font-semibold transition-all ${
@@ -127,7 +130,6 @@ export default function SignIn() {
               </div>
             )}
 
-            {/* Submit Button */}
             <button
               type="submit"
               disabled={loading}
@@ -144,7 +146,6 @@ export default function SignIn() {
               )}
             </button>
 
-            {/* Sign up link */}
             <p className="text-center mt-8 text-gray-300">
               New here?{" "}
               <Link
@@ -155,7 +156,6 @@ export default function SignIn() {
               </Link>
             </p>
 
-            {/* Back link */}
             <p className="text-center mt-4">
               <Link
                 to="/"

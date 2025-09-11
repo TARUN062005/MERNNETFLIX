@@ -21,7 +21,6 @@ exports.adminRegister = async (req, res) => {
 };
 
 exports.adminLogin = async (req, res) => {
-  // Corrected to expect 'password'
   const { email, password } = req.body;
   try {
     const validUser = await prisma.user.findFirst({ where: { email, role: 'admin' } });
@@ -36,12 +35,14 @@ exports.adminLogin = async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    res.status(200).send({ message: "Login Successful", token });
+    // Remove password before sending user object
+    const { password: _, ...userWithoutPassword } = validUser;
+
+    res.status(200).send({ message: "Login Successful", token, user: userWithoutPassword });
   } catch (err) {
     res.status(400).send({ message: err.message });
   }
 };
-
 exports.userRegister = async (req, res) => {
   // Corrected to expect 'password'
   const { name, email, password } = req.body;
@@ -59,7 +60,6 @@ exports.userRegister = async (req, res) => {
 };
 
 exports.userLogin = async (req, res) => {
-  // Corrected to expect 'password'
   const { email, password } = req.body;
   try {
     const validUser = await prisma.user.findFirst({ where: { email, role: 'user' } });
@@ -74,7 +74,10 @@ exports.userLogin = async (req, res) => {
       { expiresIn: '2h' }
     );
 
-    res.status(200).send({ message: "User Login Successful", token });
+    // Remove password before sending user object
+    const { password: _, ...userWithoutPassword } = validUser;
+
+    res.status(200).send({ message: "User Login Successful", token, user: userWithoutPassword });
   } catch (err) {
     res.status(400).send({ message: err.message });
   }

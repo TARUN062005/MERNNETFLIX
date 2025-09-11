@@ -16,7 +16,8 @@ router.post('/login', userLogin);
 
 router.get('/movies', verifyUser, getAllMovies);
 router.get('/movie/:title', verifyUser, getMovieById);
-router.post('/rateMovie/:title', verifyUser, rateMovie);
+// Change from POST to PUT to match frontend
+router.put('/rateMovie/:title', verifyUser, rateMovie);
 
 router.post('/searchMovie', verifyUser, (req, res) => { 
     const { query } = req.body;

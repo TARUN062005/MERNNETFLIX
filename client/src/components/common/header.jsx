@@ -1,12 +1,12 @@
 // client/src/components/common/header.jsx
 import { Link } from "react-router-dom";
 
-export default function Header({ onSignInClick }) {
+export default function Header({ onSignInClick, About , Contact}) {
   return (
     <div className="relative w-full h-screen">
       {/* Background Image */}
       <img
-        src="https://xboxwire.thesourcemediaassets.com/sites/2/2023/05/Background-size1920x1080-4e1694a6-75aa-4c36-9d4d-7fb6a3102005-bc5318781aad7f5c8520.png"
+        src="src/assets/netflix-bg.png"
         alt="netflix background"
         className="w-full h-full object-cover"
       />
@@ -25,6 +25,22 @@ export default function Header({ onSignInClick }) {
             className="w-58 h-auto cursor-pointer relative rigth-10 left-15"
           />
           <div className="flex items-center gap-4">
+              <Link to="/About">
+               <button
+                className="bg-black-600 hover:bg-black-700 text-white font-bold rounded px-8 py-4 text-lg border-2 border-transparent hover:border-white transition-all duration-300 hover:shadow-lg hover:scale-105"
+                aria-label="Sign In"
+              >
+                About
+              </button>
+              </Link>
+               <Link to="/Contact">
+              <button
+                className="bg-black-600 hover:bg-black-700 text-white font-bold rounded px-8 py-4 text-lg border-2 border-transparent hover:border-white transition-all duration-300 hover:shadow-lg hover:scale-105"
+                aria-label="Sign In"
+              >
+                Contact
+              </button>           
+              </Link> 
             <select
               className="bg-black/50 text-white font-bold rounded px-6 py-4 border-2 border-white text-lg"
               aria-label="Language selector"
@@ -60,12 +76,9 @@ export default function Header({ onSignInClick }) {
                 className="w-full sm:w-2/3 max-w-lg p-4 rounded text-white text-lg border-2 border-white bg-black/30 placeholder-white"
                 aria-label="Email address"
               />
-              <button
-                className="bg-red-600 hover:bg-red-700 text-white font-bold px-12 py-5 rounded text-xl border-2 border-transparent hover:border-white transition-all duration-300 hover:shadow-lg hover:scale-105"
-                aria-label="Get Started"
-              >
-                Get Started &#62;
-              </button>
+               <button className="bg-gradient-to-r from-red-600 via-red-700 to-red-600 text-white font-bold px-12 py-5 rounded text-xl border-2 border-transparent hover:border-white transition-all duration-300 hover:shadow-xl hover:scale-105 animate-pulse" aria-label="Get Started">
+                 Get Started &#62;
+                 </button> 
             </div>
           </div>
         </div>

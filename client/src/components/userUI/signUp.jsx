@@ -23,6 +23,13 @@ export default function SignUp() {
     }
   }, [message]);
 
+  // Redirect to signin page on successful registration
+  useEffect(() => {
+    if (status === "success") {
+      navigate("/signin");
+    }
+  }, [status, navigate]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -55,7 +62,7 @@ export default function SignUp() {
     <div className="relative w-full h-screen font-inter">
       {/* Background */}
       <img
-        src="https://xboxwire.thesourcemediaassets.com/sites/2/2023/05/Background-size1920x1080-4e1694a6-75aa-4c36-9d4d-7fb6a3102005-bc5318781aad7f5c8520.png"
+        src="src/assets/netflix-bg.png"
         alt="background"
         className="w-full h-full object-cover"
       />
@@ -64,16 +71,14 @@ export default function SignUp() {
 
       {/* Content */}
     
-       <div className="absolute top-0 left-0 w-full h-full flex flex-col z-30">
+      <div className="absolute top-0 left-0 w-full h-full flex flex-col z-30">
         {/* Header with Netflix Logo */}
-          <div className="relative p-6">
+        <div className="relative p-6">
           <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix Logo"
-         className="w-58 h-auto cursor-pointer relative rigth-10 left-15" 
-    // change left-10 to right-10 or left-20 etc.
-    onClick={() => navigate("/")}
-  />
-</div>
-
+          className="w-58 h-auto cursor-pointer relative rigth-10 left-15" 
+          onClick={() => navigate("/")}
+        />
+      </div>
 
         {/* SignUp Form */}
         <div className="flex-grow flex items-center justify-center">
