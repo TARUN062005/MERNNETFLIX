@@ -8,7 +8,7 @@ const movieController = require('../controller/movieController');
 const { verifyAdmin } = require('../middleware/authenticateMiddleware');
 
 const { adminLogin, adminRegister, adminChangePass, adminResetUserPassword } = authController;
-const { getAllUsers } = adminController;
+const { getAllUsers, userDelete } = adminController;
 const { createGenre, getGenres, getGenreById, updateGenre, deleteGenre } = genreController;
 const { createMovie, getAllMovies, getMovieById, updateMovie, deleteMovie, rateMovie } = movieController;
 
@@ -18,10 +18,10 @@ router.get('/allUsers', verifyAdmin, getAllUsers);
 router.put('/changePass/:id', verifyAdmin, adminChangePass);
 router.put('/resetUserPass/:userId', verifyAdmin, adminResetUserPassword);
 router.post('/genre', verifyAdmin, createGenre);
-router.get('/genre', verifyAdmin, getGenres);
+router.get('/genreGet', verifyAdmin, getGenres);
 router.get('/genre/:title', verifyAdmin, getGenreById);
-router.put('/genre/:title', verifyAdmin, updateGenre);
-router.delete('/genre/:title', verifyAdmin, deleteGenre);
+router.put('/genreEdit/:title', verifyAdmin, updateGenre);
+router.delete('/genreDel/:title', verifyAdmin, deleteGenre);
 
 router.post('/addMovie', verifyAdmin, createMovie);
 router.get('/viewMovies', verifyAdmin, getAllMovies);
@@ -29,5 +29,8 @@ router.get('/viewMovie/:title', verifyAdmin, getMovieById);
 router.put('/editMovie/:title', verifyAdmin, updateMovie);
 router.delete('/deleteMovie/:title', verifyAdmin, deleteMovie);
 router.post('/rateMovie/:title', verifyAdmin, rateMovie);
+
+// ✅ Added user delete route
+router.delete('/userDel/:id', verifyAdmin, userDelete);
 
 module.exports = router;

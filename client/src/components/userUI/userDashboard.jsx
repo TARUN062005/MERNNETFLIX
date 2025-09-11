@@ -35,28 +35,64 @@ const CustomModal = ({ title, content, onClose }) => (
   </div>
 );
 
-const VideoModal = ({ movie, onClose }) => (
-  <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
-    <div className="bg-gray-900 rounded-lg shadow-2xl text-white max-w-4xl w-full">
-      <div className="flex justify-end p-4">
-        <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
-      <div className="relative" style={{ paddingBottom: '56.25%' }}> {/* 16:9 Aspect Ratio */}
-        <iframe
-          className="absolute top-0 left-0 w-full h-full rounded-b-lg"
-          src={movie.url}
-          title={movie.title}
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-          allowFullScreen
-        ></iframe>
+// Extract YouTube ID from various URL formats
+const getYouTubeId = (url) => {
+  if (!url) return null;
+  
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
+// Updated VideoModal component with proper YouTube embedding
+const VideoModal = ({ movie, onClose }) => {
+  const youtubeId = getYouTubeId(movie.url);
+  const embedUrl = youtubeId ? `https://www.youtube.com/embed/${youtubeId}` : null;
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+      <div className="bg-gray-900 rounded-lg shadow-2xl text-white max-w-4xl w-full">
+        <div className="flex justify-between items-center p-4 border-b border-gray-700">
+          <h3 className="text-xl font-bold">{movie.title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-white transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="relative" style={{ paddingBottom: '56.25%' }}> {/* 16:9 Aspect Ratio */}
+          {embedUrl ? (
+            <iframe
+              className="absolute top-0 left-0 w-full h-full rounded-b-lg"
+              src={embedUrl}
+              title={movie.title}
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            ></iframe>
+          ) : (
+            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-gray-800 rounded-b-lg p-4">
+              <div className="text-red-500 text-5xl mb-4">⚠️</div>
+              <h3 className="text-xl font-bold mb-2">Video Cannot Be Played</h3>
+              <p className="text-gray-400 text-center mb-4">
+                This video cannot be embedded. Please watch it on the original platform.
+              </p>
+              <a 
+                href={movie.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded transition-colors"
+              >
+                Watch on Original Site
+              </a>
+            </div>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 // Star Rating Component
 const StarRating = ({ rating, onRate, interactive = true, showValue = true, submitting = false }) => {
@@ -93,7 +129,7 @@ const StarRating = ({ rating, onRate, interactive = true, showValue = true, subm
 export default function UserDashboard() {
   const [user, setUser] = useState(null);
   const [movies, setMovies] = useState([]);
-  const [filteredMovies, setFilteredMovies] = useState([]);
+  const [genres, setGenres] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -106,12 +142,7 @@ export default function UserDashboard() {
   const [submittingRating, setSubmittingRating] = useState(false);
   const navigate = useNavigate();
 
-  // Calculate average rating for all movies
-  const averageRating = movies.length > 0
-    ? (movies.reduce((sum, movie) => sum + (movie.rating || 0), 0) / movies.length).toFixed(1)
-    : "N/A";
-
-  // Fetch movies on component mount
+  // Fetch movies and genres on component mount
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -126,34 +157,26 @@ export default function UserDashboard() {
         setUser(storedUser);
         const headers = { Authorization: `Bearer ${token}` };
 
-        // Fetch all movies
-        const moviesRes = await axios.get("http://localhost:8060/user/movies", { headers });
+        // Fetch both movies and genres using the correct API routes
+        const [moviesRes, genresRes] = await Promise.all([
+          axios.get("http://localhost:8060/user/movies", { headers }),
+          axios.get("http://localhost:8060/user/genres", { headers }),
+        ]);
+
         const fetchedMovies = moviesRes.data.data;
-        
+        const fetchedGenres = genresRes.data.data;
+
         setMovies(fetchedMovies);
-        setFilteredMovies(fetchedMovies);
+        setGenres(fetchedGenres);
         setLoading(false);
       } catch (err) {
-        setError("Failed to fetch movies. Please check your server connection.");
-        console.error("Error fetching movies:", err);
+        setError("Failed to fetch data. Please check your server connection.");
+        console.error("Error fetching data:", err);
         setLoading(false);
       }
     };
     fetchData();
   }, [navigate]);
-
-  // Filter and group movies based on search term
-  const groupedMovies = movies.filter(movie =>
-    (movie.title && movie.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (movie.genre?.name && movie.genre.name.toLowerCase().includes(searchTerm.toLowerCase()))
-  ).reduce((acc, movie) => {
-    const genreName = movie.genre?.name || "Uncategorized";
-    if (!acc[genreName]) {
-      acc[genreName] = [];
-    }
-    acc[genreName].push(movie);
-    return acc;
-  }, {});
 
   // Handle message display
   useEffect(() => {
@@ -180,18 +203,20 @@ export default function UserDashboard() {
     setSubmittingRating(true);
 
     try {
-      const response = await axios.put(`http://localhost:8060/user/rateMovie/${movieTitle}`, { rating }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      
+      const response = await axios.put(
+        `http://localhost:8060/user/rateMovie/${movieTitle}`,
+        { rating },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       if (response.data.status) {
-        // Update the local state to reflect the new rating
         setMovies(prevMovies =>
           prevMovies.map(movie =>
             movie.title === movieTitle ? { ...movie, rating } : movie
           )
         );
-        
         setMessage("Movie rated successfully!");
         setMessageStatus("success");
       } else {
@@ -251,12 +276,28 @@ export default function UserDashboard() {
     );
   }
 
+  // Determine which movies to display based on search term
+  const filteredMovies = movies.filter(movie =>
+    (movie.title && movie.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (movie.genre?.name && movie.genre.name.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
+
+  // Group filtered movies by genre
+  const groupedMovies = genres.reduce((acc, genre) => {
+    const moviesForGenre = filteredMovies.filter(movie => movie.genre?.name === genre.name);
+    if (moviesForGenre.length > 0 || searchTerm === '') {
+        acc[genre.name] = moviesForGenre;
+    }
+    return acc;
+  }, {});
+
+  // Handle single movie search
   const movieSearch = movies.find(movie => movie.title.toLowerCase().includes(searchTerm.toLowerCase()));
-  const showGrouped = !searchTerm || !movieSearch;
+  const showGrouped = !searchTerm || (searchTerm && !movieSearch);
   const displayMovies = showGrouped ? groupedMovies : { "Search Results": [movieSearch] };
 
   return (
-    <div className="min-h-screen bg-black text-white font-inter">
+    <div className="min-h-screen bg-black text-white font-inter flex flex-col">
       {/* Header */}
       <header className="fixed top-0 left-0 w-full z-40 bg-black/80 backdrop-blur-md p-6 flex justify-between items-center shadow-lg">
         <Link to="/" className="flex items-center">
@@ -296,7 +337,7 @@ export default function UserDashboard() {
         <VideoModal movie={currentMovie} onClose={() => setIsVideoModalOpen(false)} />
       )}
 
-      <main className="pt-28 pb-12 px-6">
+      <main className="pt-28 pb-12 px-6 flex-grow">
         {/* Search and Filter */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-10 space-y-4 sm:space-y-0">
           <h1 className="text-4xl sm:text-5xl font-extrabold drop-shadow-lg">
@@ -329,20 +370,19 @@ export default function UserDashboard() {
                   {displayMovies[genre].map(movie => (
                     <div
                       key={movie.id}
-                      onClick={() => handleMovieClick(movie)}
                       className="bg-gray-900 rounded-lg overflow-hidden shadow-xl transform transition-transform duration-300 hover:scale-105 hover:shadow-2xl cursor-pointer flex flex-col relative"
                     >
-                      {/* Rating badge in top right corner */}
-                      <div className="absolute top-2 right-2 bg-black/70 px-2 py-1 rounded-full z-10">
-                        <div className="flex items-center">
-                          <span className="text-yellow-400 mr-1">★</span>
-                          <span className="text-white text-sm font-bold">
-                            {movie.rating ? movie.rating.toFixed(1) : "N/A"}
-                          </span>
+                      {/* Movie average rating badge */}
+                      {movie.rating && (
+                        <div className="absolute top-2 right-2 bg-black/70 text-yellow-400 font-bold py-1 px-2 rounded-full flex items-center z-10">
+                          <span className="mr-1">★</span>
+                          <span>{movie.rating.toFixed(1)}</span>
                         </div>
-                      </div>
-                      
-                      <div className="h-48 overflow-hidden">
+                      )}
+                      <div 
+                        className="h-48 overflow-hidden relative"
+                        onClick={() => handleMovieClick(movie)}
+                      >
                         <img
                           src={movie.bannerUrl}
                           alt={movie.title}
@@ -352,6 +392,13 @@ export default function UserDashboard() {
                             e.target.src = "https://placehold.co/400x300/1e293b/a1a1aa?text=No+Image";
                           }}
                         />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center">
+                          <div className="bg-red-600 rounded-full p-3 transform hover:scale-110 transition-transform">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10" viewBox="0 0 20 20" fill="currentColor">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        </div>
                       </div>
                       <div className="p-4 flex flex-col flex-grow">
                         <div className="flex-grow">
