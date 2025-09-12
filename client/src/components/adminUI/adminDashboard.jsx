@@ -201,34 +201,38 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditMovie = async (movieData) => {
-    if (!editingMovie) {
-      showMessage("No movie selected for editing", "error");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const titleParam = encodeURIComponent(editingMovie.title);
-      const response = await axios.put(
-        `http://localhost:8060/admin/editMovie/${titleParam}`,
-        movieData,
-        { headers: { Authorization: `Bearer ${token}` } }
+const handleEditMovie = async (movieData, originalTitle) => {
+  if (!originalTitle) {
+    showMessage("No movie selected for editing", "error");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    const titleParam = encodeURIComponent(originalTitle);
+    const response = await axios.put(
+      `http://localhost:8060/admin/editMovie/${titleParam}`,
+      movieData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.status) {
+      setMovies(prev =>
+        prev.map(m => (m.title === originalTitle ? response.data.data : m))
       );
-      if (response.data.status) {
-        setMovies(prev =>
-          prev.map(m => (m.title === editingMovie.title ? response.data.data : m))
-        );
-        showMessage("Movie updated successfully", "success");
-        setIsModalOpen(false);
-        setEditingMovie(null);
-      } else {
-        showMessage(response.data.message || "Failed to update movie", "error");
-      }
-    } catch (err) {
-      console.error("Edit movie error:", err);
-      showMessage(err.response?.data?.message || "Failed to update movie", "error");
+      showMessage("Movie updated successfully", "success");
+      setIsModalOpen(false);
+      setEditingMovie(null);
+    } else {
+      showMessage(response.data.message || "Failed to update movie", "error");
     }
-  };
+  } catch (err) {
+    console.error("Edit movie error:", err);
+    showMessage(err.response?.data?.message || "Failed to update movie", "error");
+  }
+};
+
+
 
   const handleDeleteMovie = async (movieTitle) => {
     if (!window.confirm(`Are you sure you want to delete "${movieTitle}"?`)) return;
@@ -299,34 +303,43 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEditGenre = async (genreData) => {
-    if (!editingGenre) {
-      showMessage("No genre selected for editing", "error");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const nameParam = encodeURIComponent(editingGenre.name);
-      const response = await axios.put(
-        `http://localhost:8060/admin/genreEdit/${nameParam}`,
-        genreData,
-        { headers: { Authorization: `Bearer ${token}` } }
+ const handleEditGenre = async (genreData, originalName) => {
+  if (!originalName) {
+    showMessage("No genre selected for editing", "error");
+    return;
+  }
+
+  try {
+    const token = localStorage.getItem("token");
+    const nameParam = encodeURIComponent(originalName);
+    const response = await axios.put(
+      `http://localhost:8060/admin/genreEdit/${nameParam}`,
+      genreData,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.status) {
+      setGenres(prev =>
+        prev.map(g => (g.name === originalName ? response.data.data : g))
       );
-      if (response.data.status) {
-        setGenres(prev =>
-          prev.map(g => (g.name === editingGenre.name ? response.data.data : g))
-        );
-        showMessage("Genre updated successfully", "success");
-        setIsModalOpen(false);
-        setEditingGenre(null);
-      } else {
-        showMessage(response.data.message || "Failed to update genre", "error");
-      }
-    } catch (err) {
-      console.error("Edit genre error:", err);
-      showMessage(err.response?.data?.message || "Failed to edit genre", "error");
+      showMessage("Genre updated successfully", "success");
+      setIsModalOpen(false);
+      setEditingGenre(null);
+    } else {
+      showMessage(response.data.message || "Failed to update genre", "error");
     }
-  };
+  } catch (err) {
+    console.error("Edit genre error:", err);
+    showMessage(err.response?.data?.message || "Failed to edit genre", "error");
+  }
+};
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setSubmitting(true);
+  await onSubmit({ name }, genre?.name); // Pass original genre name
+  setSubmitting(false);
+};
+
 
   const handleDeleteGenre = async (genreName) => {
     if (!window.confirm(`Are you sure you want to delete "${genreName}"?`)) return;
@@ -416,7 +429,7 @@ export default function AdminDashboard() {
     const handleSubmit = async (e) => {
       e.preventDefault();
       setSubmitting(true);
-      await onSubmit(formData);
+      await onSubmit(formData, movie?.title);
       setSubmitting(false);
     };
 
@@ -531,50 +544,52 @@ export default function AdminDashboard() {
   };
 
   const GenreForm = ({ onSubmit, genre, onCancel }) => {
-    const [name, setName] = useState(genre?.name || "");
-    const [submitting, setSubmitting] = useState(false);
+  const [name, setName] = useState(genre?.name || "");
+  const [submitting, setSubmitting] = useState(false);
 
-    const handleSubmit = async (e) => {
-      e.preventDefault();
-      setSubmitting(true);
-      await onSubmit({ name });
-      setSubmitting(false);
-    };
-
-    return (
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Genre Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-600 transition"
-            required
-          />
-        </div>
-        <div className="flex justify-end space-x-3 pt-4">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2 transition"
-          >
-            {submitting && (
-              <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            )}
-            <span>{genre ? "Update" : "Add"} Genre</span>
-          </button>
-        </div>
-      </form>
-    );
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+    // Pass both the new genre data and the original genre name when editing
+    await onSubmit({ name }, genre?.name);
+    setSubmitting(false);
   };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium mb-1">Genre Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white focus:ring-2 focus:ring-red-600 transition"
+          required
+        />
+      </div>
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600 transition"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          disabled={submitting}
+          className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center space-x-2 transition"
+        >
+          {submitting && (
+            <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+          )}
+          <span>{genre ? "Update" : "Add"} Genre</span>
+        </button>
+      </div>
+    </form>
+  );
+};
+
 
   if (loading) {
     return (
@@ -593,7 +608,7 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center space-x-4">
           <span className="text-lg font-semibold text-white/80">
-            {admin?.name}
+            Welcome, {admin?.name}
           </span>
           <button
             onClick={handleLogout}
@@ -635,38 +650,44 @@ export default function AdminDashboard() {
                 + Add Movie
               </button>
             </div>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {movies.map((movie) => (
-                <div
-                  key={movie.id}
-                  className="bg-gray-900 rounded-lg shadow-lg overflow-hidden hover:scale-[1.02] transition"
-                >
-                  <img
-                    src={movie.bannerUrl}
-                    alt={movie.title}
-                    className="w-full h-56 object-cover object-center"
-                  />
-                  <div className="p-4 space-y-2">
-                    <h3 className="text-lg font-bold">{movie.title}</h3>
-                    <p className="text-sm text-gray-400">{movie.year}</p>
-                    <div className="flex justify-between items-center">
-                      <button
-                        onClick={() => openEditMovieModal(movie)}
-                        className="px-3 py-1 bg-blue-600 text-sm rounded hover:bg-blue-700 transition"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteMovie(movie.title)}
-                        className="px-3 py-1 bg-red-600 text-sm rounded hover:bg-red-700 transition"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+    <div
+      key={movie.id}
+      className="bg-gray-900 rounded-lg shadow-lg overflow-hidden transition-transform duration-200 ease-in-out hover:scale-105"
+    >
+      {/* Poster wrapper with adjusted aspect ratio for taller images */}
+      <div className="aspect-[5/4] w-full overflow-hidden">
+        <img
+          src={movie.bannerUrl}
+          alt={movie.title}
+          className="w-full h-full object-cover object-center rounded-t-md"
+        />
+      </div>
+
+      {/* Movie details */}
+      <div className="p-4 space-y-2">
+        <h3 className="text-lg font-semibold text-white truncate">{movie.title}</h3>
+        <p className="text-sm text-gray-400">{movie.year}</p>
+        <div className="flex justify-between items-center mt-2">
+          <button
+            onClick={() => openEditMovieModal(movie)}
+            className="px-3 py-1 bg-blue-600 text-sm rounded hover:bg-blue-700 transition"
+          >
+            Edit
+          </button>
+          <button
+            onClick={() => handleDeleteMovie(movie.title)}
+            className="px-3 py-1 bg-red-600 text-sm rounded hover:bg-red-700 transition"
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  ))}
+</div>
+
           </section>
         )}
 
